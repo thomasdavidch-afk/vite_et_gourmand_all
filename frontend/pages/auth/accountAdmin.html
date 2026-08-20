@@ -1,0 +1,359 @@
+<section class="hero-signin d-flex align-items-center justify-content-center text-center text-white">
+    <div class="container">
+        <h1 class="fw-bold">Mon compte Administrateur</h1>
+    </div>
+</section>
+
+<section class="container py-5">
+
+    <!-- ========================================== -->
+    <!-- 1. GESTION ET CRÉATION DES PLATS INDIVIDUELS -->
+    <!-- ========================================== -->
+    <h3 class="mb-3 text-primary"><i class="bi bi-egg-fried me-2"></i>1. Gestion de la Carte (Plats)</h3>
+    <p class="text-muted">Créez d'abord vos plats. Vous pourrez ensuite les associer à vos menus ci-dessous.</p>
+
+    <!-- FORMULAIRE CRÉATION / EDITION -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3" id="plat-form-title">Créer un nouveau plat</h5>
+            <form id="form-ajout-plat" class="row g-3">
+                <input type="hidden" id="plat-id" value="">
+
+                <div class="col-md-4">
+                    <label class="form-label">Nom / Titre du plat *</label>
+                    <input type="text" id="plat-titre" class="form-control" placeholder="Ex: Poulet Tikka Masala" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Type de plat *</label>
+                    <select id="plat-type" class="form-select" required>
+                        <option value="">-- Choisir un type --</option>
+                        <option value="entree">Entrée</option>
+                        <option value="plat">Plat principal</option>
+                        <option value="dessert">Dessert</option>
+                        <option value="boisson">Boisson</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Photo du plat (fichier)</label>
+                    <input type="file" id="plat-photo" class="form-control" accept="image/*">
+                </div>
+                <div class="col-12 text-end d-flex justify-content-end gap-2">
+                    <button type="button" id="btn-cancel-plat" class="btn btn-outline-secondary d-none">
+                        <i class="bi bi-x-circle me-1"></i> Annuler
+                    </button>
+                    <button type="submit" id="btn-submit-plat" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Enregistrer le plat
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TABLEAU DES PLATS -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3">Liste des plats existants</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 80px;">Photo</th>
+                            <th>Nom du plat</th>
+                            <th>Type</th>
+                            <th class="text-end" style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-plats-body">
+                        <!-- Rempli dynamiquement en JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. CRÉATION D'UN MENU COMPLET -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-success"><i class="bi bi-journal-plus me-2"></i>2. Ajout d'un Menu</h3>
+    <hr>
+
+    <form id="form-creer-menu" class="bg-light p-4 rounded shadow-sm mb-5" enctype="multipart/form-data">
+        <!-- TITRE & DESCRIPTION -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Nom du menu *</label>
+                <input type="text" id="add-menu-titre" class="form-control" placeholder="Ex : Menu Mariage Prestige" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Prix par personne (€) *</label>
+                <input type="number" step="0.01" id="add-menu-prix" class="form-control" placeholder="Ex: 27.50" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Nombre pers. minimum *</label>
+                <input type="number" id="add-menu-min-pers" class="form-control" placeholder="Ex: 10" required>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-8">
+                <label class="form-label fw-bold">Description du menu</label>
+                <textarea id="add-menu-description" class="form-control" rows="2" placeholder="Description courte du menu..."></textarea>
+            </div>
+            <!-- AJOUT CHAMP PHOTO MENU -->
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Photo d'illustration du Menu</label>
+                <input type="file" id="add-menu-photo" class="form-control" accept="image/*">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Stock disponible *</label>
+                <input type="number" id="add-menu-stock" class="form-control" placeholder="Ex : 100" required>
+            </div>
+            <!-- THÈMES -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Thèmes associés</label>
+                <div id="add-menu-themes" class="border bg-white p-2 rounded" style="max-height: 120px; overflow-y: auto;">
+                    <!-- Rempli en JS avec des checkboxes -->
+                    <small class="text-muted">Chargement des thèmes...</small>
+                </div>
+            </div>
+            <!-- RÉGIMES -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Régimes associés</label>
+                <div id="add-menu-regimes" class="border bg-white p-2 rounded" style="max-height: 120px; overflow-y: auto;">
+                    <!-- Rempli en JS avec des checkboxes -->
+                    <small class="text-muted">Chargement des régimes...</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELECTION DES PLATS EXISTANTS -->
+        <h5 class="fw-bold mb-3 mt-4">Composition du menu (Sélectionner parmi les plats existants)</h5>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Entrées</label>
+                <select id="select-add-entrees" class="form-select" multiple style="height: 140px;">
+                    <!-- Rempli en JS -->
+                </select>
+                <small class="text-muted">Maintenir Ctrl (ou Cmd) pour plusieurs choix</small>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Plats principaux</label>
+                <select id="select-add-plats" class="form-select" multiple style="height: 140px;">
+                    <!-- Rempli en JS -->
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Desserts</label>
+                <select id="select-add-desserts" class="form-select" multiple style="height: 140px;">
+                    <!-- Rempli en JS -->
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Boissons</label>
+                <select id="select-add-boissons" class="form-select" multiple style="height: 140px;">
+                    <!-- Rempli en JS -->
+                </select>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                <i class="bi bi-check-circle me-1"></i> Créer le menu
+            </button>
+        </div>
+    </form>
+
+    <!-- ========================================== -->
+    <!-- 3. MODIFICATION / SUPPRESSION D'UN MENU -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-warning"><i class="bi bi-pencil-square me-2"></i>3. Modification d'un Menu existant</h3>
+    <hr>
+
+    <div class="bg-white p-4 rounded border shadow-sm mb-5">
+        <!-- SELECT MENU -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">Choisir un menu à modifier ou supprimer</label>
+            <select id="select-menu-edit" class="form-select form-select-lg">
+                <option value="">-- Sélectionner un menu --</option>
+            </select>
+        </div>
+
+        <form id="form-edit-menu" enctype="multipart/form-data">
+            <!-- INFOS MENU -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Nom du menu</label>
+                    <input type="text" id="edit-menu-titre" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Prix / pers (€)</label>
+                    <input type="number" step="0.01" id="edit-menu-prix" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Min. Personnes</label>
+                    <input type="number" id="edit-menu-min-pers" class="form-control">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-7">
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea id="edit-menu-description" class="form-control" rows="2"></textarea>
+                </div>
+                <!-- MODIFICATION PHOTO MENU -->
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Changer la Photo du Menu</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <img id="edit-menu-photo-preview" src="" alt="Photo menu" class="rounded border d-none" style="width: 50px; height: 50px; object-fit: cover;">
+                        <input type="file" id="edit-menu-photo" class="form-control" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Stock disponible</label>
+                    <input type="number" id="edit-menu-stock" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Thèmes</label>
+                    <div id="edit-menu-themes" class="border bg-white p-2 rounded" style="max-height: 120px; overflow-y: auto;"></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Régimes</label>
+                    <div id="edit-menu-regimes" class="border bg-white p-2 rounded" style="max-height: 120px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
+            <!-- SELECTION PLATS DANS EDIT -->
+            <h5 class="fw-bold mb-3">Modifier la liste des plats inclus</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Entrées</label>
+                    <select id="select-edit-entrees" class="form-select" multiple style="height: 120px;"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Plats</label>
+                    <select id="select-edit-plats" class="form-select" multiple style="height: 120px;"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Desserts</label>
+                    <select id="select-edit-desserts" class="form-select" multiple style="height: 120px;"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Boissons</label>
+                    <select id="select-edit-boissons" class="form-select" multiple style="height: 120px;"></select>
+                </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-warning px-4 me-2">
+                    <i class="bi bi-save me-1"></i> Enregistrer les modifications
+                </button>
+                <button type="button" id="btn-delete-menu" class="btn btn-danger px-4">
+                    <i class="bi bi-trash me-1"></i> Supprimer ce menu
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 4. GESTION DES COMMANDES CLIENTS -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-info"><i class="bi bi-bag-check me-2"></i>4. Suivi et Mise à jour des Commandes</h3>
+    <hr>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3">Commandes en cours et passées</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>N° Commande</th>
+                            <th>Client</th>
+                            <th>Menu</th>
+                            <th>Date Prestation</th>
+                            <th>Matériel prêté</th>
+                            <th>Statut Actuel</th>
+                            <th style="width: 240px;">Mettre à jour le statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-commandes-body">
+                        <!-- Rempli dynamiquement en JS -->
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Chargement des commandes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 5. GESTION DES COMPTES EMPLOYÉS -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-secondary"><i class="bi bi-people me-2"></i>5. Gestion de l'Équipe (Employés)</h3>
+    <hr>
+
+    <!-- FORMULAIRE CRÉATION EMPLOYÉ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-plus me-1"></i> Ajouter un compte employé</h5>
+            <form id="form-ajout-employe" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Nom *</label>
+                    <input type="text" id="emp-nom" class="form-control" placeholder="Dupont" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Prénom *</label>
+                    <input type="text" id="emp-prenom" class="form-control" placeholder="Jean" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Adresse Email *</label>
+                    <input type="email" id="emp-email" class="form-control" placeholder="jean.dupont@restaurant.com" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Mot de passe *</label>
+                    <input type="password" id="emp-password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <div class="col-12 text-end mt-3">
+                    <button type="submit" class="btn btn-secondary px-4">
+                        <i class="bi bi-plus-circle me-1"></i> Créer le compte employé
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TABLEAU DE LA LISTE DES EMPLOYÉS -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3">Liste du personnel</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nom & Prénom</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-employes-body">
+                        <!-- Rempli dynamiquement en JS -->
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Chargement des employés...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</section>

@@ -1,0 +1,60 @@
+<section class="container py-5" id="menu-detail-section">
+
+    <!-- TITRE -->
+    <h1 class="mb-4" id="menu-titre">“ Titre du menu ”</h1>
+
+    <!-- INTRO -->
+    <div class="row align-items-center mb-5">
+
+        <div class="col-lg-6">
+            <p id="menu-description">
+                Description du menu...
+            </p>
+
+            <p class="fw-bold">
+                Disponibilité :
+                <span class="text-warning" id="menu-stock">-- en stock</span>
+            </p>
+
+            <p class="fw-bold">
+                Prix :
+                <span class="text-warning" id="menu-prix">-- € / personne</span>
+            </p>
+
+            <h5 class="mt-4">Conditions :</h5>
+            <ul class="text-muted">
+                <li><span id="menu-min-pers">--</span> personnes minimum</li>
+                <li>Régime : <span id="menu-regime" class="fw-bold">--</span></li>
+                <li>Commande 2 semaines à l'avance</li>
+                <li>Livraison la veille</li>
+            </ul>
+        </div>
+
+        <div class="col-lg-6">
+            <img id="menu-image" class="img-fluid rounded shadow w-100" style="max-height: 400px; object-fit: cover;" alt="Image du menu">
+        </div>
+
+    </div>
+
+    <!-- LISTE DES PLATS PROPOSÉS DANS CE MENU -->
+    <h3 class="mb-4 fw-bold">Composants du menu</h3>
+    
+    <div class="row g-4" id="liste-plats-container">
+        <!-- Les cartes de plats seront générées dynamiquement ici par JS -->
+    </div>
+
+    <!-- BOUTON COMMANDE -->
+    <div class="text-center mt-5">
+        <a href="/infoCommande" id="btn-commander" class="btn btn-warning btn-lg text-white px-5 fw-bold">
+            Je passe commande
+        </a>
+    </div>
+
+    <!-- ALLERGÈNES -->
+    <div class="text-center mt-3">
+        <a href="#" id="btn-allergenes" class="text-warning fw-bold text-decoration-none">
+            📄 Télécharger la liste des allergènes
+        </a>
+    </div>
+
+</section>

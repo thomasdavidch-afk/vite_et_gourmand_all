@@ -1,0 +1,77 @@
+<section class="hero-menus d-flex align-items-center justify-content-center text-center text-white">
+    <div class="container">
+        <h1 class="fw-bold">Nos Menus</h1>
+    </div>
+</section>
+
+<section>
+    <div class="container py-5">
+        <div class="row">
+
+            <!-- FILTRES -->
+            <aside class="col-lg-3 mb-4">
+                <div class="bg-warning-subtle p-4 rounded">
+
+                    <h5 class="fw-bold mb-3">Filtrer par thèmes</h5>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="theme" id="tous" value="tous" checked>
+                        <label class="form-check-label" for="tous">Tous</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="theme" id="noel" value="noel">
+                        <label class="form-check-label" for="noel">Noël</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="theme" id="classique" value="classique">
+                        <label class="form-check-label" for="classique">Classique</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="theme" id="mariage" value="mariage">
+                        <label class="form-check-label" for="mariage">Mariage</label>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="radio" name="theme" id="vegetarienTheme" value="vegetarien">
+                        <label class="form-check-label" for="vegetarienTheme">Végétarien</label>
+                    </div>
+
+                    <h6 class="fw-bold">Budget Maximum</h6>
+                    <input type="range" class="form-range mb-1" id="budgetRange" min="0" max="60" value="60">
+
+                    <p class="text-center mb-3" id="budgetLabel">
+                        0 € à 60 €
+                    </p>
+
+                    <h6 class="fw-bold mb-2">Trier par prix</h6>
+                    <div class="d-flex justify-content-between px-2 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="prix" id="prixMin" value="prixMin">
+                            <label class="form-check-label" for="prixMin">Prix Min</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="prix" id="prixMax" value="prixMax">
+                            <label class="form-check-label" for="prixMax">Prix Max</label>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold">Régime alimentaire</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="vegetarien">
+                        <label class="form-check-label" for="vegetarien">Végétarien uniquement</label>
+                    </div>
+
+                </div>
+            </aside>
+
+            <!-- MENUS (Injectés dynamiquement par le JS) -->
+            <div class="col-lg-9" id="listeMenus">
+                <!-- Les cartes de menus provenant de la BDD s'afficheront ici -->
+            </div>
+
+        </div>
+    </div>
+</section>

@@ -1,0 +1,61 @@
+<section class="container py-5">
+
+    <div class="mx-auto" style="max-width: 800px;">
+
+        <!-- TITRE -->
+        <h2 class="text-center mb-4">Contactez-Nous</h2>
+
+        <p class="text-center text-muted mb-5">
+        Merci de remplir le formulaire de contact suivant
+        </p>
+
+        <!-- FORM -->
+        <form action="/" method="GET" class="bg-light p-4 rounded shadow-sm">
+
+        <!-- NOM -->
+        <div class="mb-4">
+            <label class="form-label">Nom Complet</label>
+            <input type="text" name="nom" class="form-control" required>
+        </div>
+
+        <!-- TEL + EMAIL -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+            <label class="form-label">Numéro de téléphone</label>
+            <input type="tel" name="telephone" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" required>
+            </div>
+        </div>
+
+        <!-- MESSAGE -->
+        <div class="mb-4">
+            <label class="form-label">Message et titre de la demande *</label>
+            <input type="text" name="sujet" class="form-control mb-3" required>
+            
+            <textarea name="message" rows="4" class="form-control" required></textarea>
+        </div>
+
+        <!-- CHECKBOX -->
+        <div class="form-check mb-4 text-end">
+            <input class="form-check-input" type="checkbox" required>
+            <label class="form-check-label">
+            J’accepte d’envoyer le formulaire
+            </label>
+        </div>
+
+        <!-- BOUTON -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-warning px-5 py-2 fw-bold">
+            Envoyer >
+            </button>
+        </div>
+
+        </form>
+
+    </div>
+
+</section>
