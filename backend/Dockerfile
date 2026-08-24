@@ -36,8 +36,13 @@ ENV APP_DEBUG=0
 # Installer les dépendances Symfony de production
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Création et permissions pour le cache et les logs
-RUN mkdir -p /var/www/backend/var && chown -R www-data:www-data /var/www/backend/var
+# Installer les assets statiques (Swagger UI, etc.)
+RUN php bin/console assets:install public --no-interaction
+
+# Création et permissions pour le cache, logs et assets
+RUN mkdir -p /var/www/backend/var \
+    && chown -R www-data:www-data /var/www/backend/var \
+    && chown -R www-data:www-data /var/www/backend/public
 
 EXPOSE 80
 
