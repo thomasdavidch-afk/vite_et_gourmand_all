@@ -30,12 +30,17 @@ async function initAdminPage() {
     let toutesLesCommandes = [];
     let tousLesEmployes = [];
 
+    // 👈 AJOUT POUR LES STATS (NoSQL) :
+    let toutesLesStatsNoSql = [];
+    let instanceGraphique = null;
+
     // Initialisation
     await chargerThemesEtRegimes();
     await chargerPlats();
     await chargerMenus();
     await chargerCommandes();
     await chargerEmployes();
+    await initStatsNoSql();
 
     /* ========================================================
        1. CHARGEMENT DES THÈMES ET RÉGIMES (CHECKBOXES)
@@ -358,6 +363,7 @@ async function initAdminPage() {
             if (!res.ok) return;
 
             tousLesMenus = await res.json();
+            remplirFiltreMenuStats();
             const selectEdit = document.getElementById('select-menu-edit');
             if (!selectEdit) return;
 
@@ -723,5 +729,213 @@ async function initAdminPage() {
         checkboxes.forEach(cb => {
             cb.checked = values.includes(parseInt(cb.value));
         });
+    }
+    /* ========================================================
+    7. STATISTIQUES & CHIFFRE D'AFFAIRES (BASE NoSQL)
+    ======================================================== */
+
+    // Remplir le select de filtre des menus pour les stats
+    function remplirFiltreMenuStats() {
+        const selectFilter = document.getElementById('stats-filter-menu');
+        if (!selectFilter) return;
+
+        let options = '<option value="all">Tous les menus</option>';
+        tousLesMenus.forEach(menu => {
+            const id = menu.menuId || menu.id;
+            const titre = menu.titre || menu.titreMenu || `Menu #${id}`;
+            options += `<option value="${id}">${titre}</option>`;
+        });
+        selectFilter.innerHTML = options;
+    }
+
+    // Chargement initial des statistiques depuis l'API NoSQL
+    async function initStatsNoSql() {
+        // Remplir le filtre menu si les menus sont déjà chargés
+        remplirFiltreMenuStats();
+
+        // Écouteurs sur les boutons Filtrer et Réinitialiser
+        const btnFilter = document.getElementById('btn-filter-stats');
+        const btnReset = document.getElementById('btn-reset-stats');
+
+        if (btnFilter) {
+            btnFilter.onclick = appliquerFiltresStats;
+        }
+
+        if (btnReset) {
+            btnReset.onclick = () => {
+                const filterMenu = document.getElementById('stats-filter-menu');
+                const dateStart = document.getElementById('stats-date-start');
+                const dateEnd = document.getElementById('stats-date-end');
+                if (filterMenu) filterMenu.value = 'all';
+                if (dateStart) dateStart.value = '';
+                if (dateEnd) dateEnd.value = '';
+                appliquerFiltresStats();
+            };
+        }
+
+        // Récupération des données NoSQL depuis Symfony
+        await chargerDonneesStats();
+    }
+
+    async function chargerDonneesStats() {
+        try {
+            // Route Symfony vers MongoDB / NoSQL
+            const res = await fetch(`${API_URL}/admin/stats/orders`, { headers: authHeaders });
+            if (!res.ok) {
+                afficherStatsVides();
+                return;
+            }
+
+            toutesLesStatsNoSql = await res.json();
+            appliquerFiltresStats();
+
+        } catch (err) {
+            console.error("Erreur chargement statistiques NoSQL :", err);
+            afficherStatsVides();
+        }
+    }
+
+    // Application des filtres : Menu, Date de début, Date de fin
+    function appliquerFiltresStats() {
+        const menuSelected = document.getElementById('stats-filter-menu')?.value || 'all';
+        const dateStart = document.getElementById('stats-date-start')?.value || null;
+        const dateEnd = document.getElementById('stats-date-end')?.value || null;
+
+        let donneesFiltrees = toutesLesStatsNoSql.filter(item => {
+            // Filtre par Menu
+            const matchMenu = (menuSelected === 'all') || 
+                              (item.idMenu && item.idMenu.toString() === menuSelected.toString());
+
+            // Filtre par Période / Dates
+            let matchDate = true;
+            if (item.dateCommande) {
+                const dateCmd = item.dateCommande.split('T')[0]; // Format YYYY-MM-DD
+                if (dateStart && dateCmd < dateStart) matchDate = false;
+                if (dateEnd && dateCmd > dateEnd) matchDate = false;
+            }
+
+            return matchMenu && matchDate;
+        });
+
+        calculerEtAfficherStats(donneesFiltrees);
+    }
+
+    // Calcul du CA, agrégation par menu et rendu graphique/tableau
+    function calculerEtAfficherStats(donnees) {
+        let totalCommandes = donnees.length;
+        let totalCA = 0;
+        const statsParMenu = {};
+
+        donnees.forEach(item => {
+            const titre = item.menuTitre || item.nomMenu || `Menu #${item.idMenu || 'Autre'}`;
+            const montant = parseFloat(item.montantTotal || (item.prixTotal) || (item.prixUnitaire * (item.nombrePersonnes || 1)) || 0);
+
+            totalCA += montant;
+
+            if (!statsParMenu[titre]) {
+                statsParMenu[titre] = { count: 0, ca: 0 };
+            }
+            statsParMenu[titre].count += 1;
+            statsParMenu[titre].ca += montant;
+        });
+
+        // 1. Mise à jour des cartes de résumé
+        const elTotalOrders = document.getElementById('stats-total-orders');
+        const elTotalCa = document.getElementById('stats-total-ca');
+        if (elTotalOrders) elTotalOrders.textContent = totalCommandes;
+        if (elTotalCa) elTotalCa.textContent = `${totalCA.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+
+        // 2. Mise à jour du tableau détaillé
+        const tbody = document.getElementById('table-stats-ca-body');
+        if (tbody) {
+            if (Object.keys(statsParMenu).length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée pour cette sélection.</td></tr>`;
+            } else {
+                let html = '';
+                for (const [titre, stat] of Object.entries(statsParMenu)) {
+                    html += `
+                        <tr>
+                            <td class="fw-bold">${titre}</td>
+                            <td class="text-center"><span class="badge bg-primary rounded-pill">${stat.count}</span></td>
+                            <td class="text-end fw-bold text-success">${stat.ca.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
+                        </tr>
+                    `;
+                }
+                tbody.innerHTML = html;
+            }
+        }
+
+        // 3. Mise à jour du graphique Chart.js
+        afficherGraphique(statsParMenu);
+    }
+
+    // Dessin du graphique avec Chart.js
+    function afficherGraphique(statsParMenu) {
+        const canvas = document.getElementById('chart-commandes-menus');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const labels = Object.keys(statsParMenu);
+        const dataCounts = labels.map(key => statsParMenu[key].count);
+
+        // Si le graphique existe déjà, le détruire pour rafraîchir proprement
+        if (instanceGraphique) {
+            instanceGraphique.destroy();
+        }
+
+        instanceGraphique = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels.length ? labels : ['Aucune commande'],
+                datasets: [{
+                    label: 'Nombre de commandes',
+                    data: dataCounts.length ? dataCounts : [0],
+                    backgroundColor: [
+                        'rgba(242, 142, 43, 0.75)',
+                        'rgba(78, 121, 167, 0.75)',
+                        'rgba(89, 161, 79, 0.75)',
+                        'rgba(225, 87, 89, 0.75)',
+                        'rgba(176, 122, 161, 0.75)',
+                        'rgba(255, 157, 167, 0.75)'
+                    ],
+                    borderColor: [
+                        '#f28e2b',
+                        '#4e79a7',
+                        '#59a14f',
+                        '#e15759',
+                        '#b07aa1',
+                        '#ff9da7'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function afficherStatsVides() {
+        const tbody = document.getElementById('table-stats-ca-body');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted">Aucune statistique disponible.</td></tr>`;
+        const elTotalOrders = document.getElementById('stats-total-orders');
+        const elTotalCa = document.getElementById('stats-total-ca');
+        if (elTotalOrders) elTotalOrders.textContent = '0';
+        if (elTotalCa) elTotalCa.textContent = '0,00 €';
+        afficherGraphique({});
     }
 }

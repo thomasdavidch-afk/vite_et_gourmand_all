@@ -45,7 +45,19 @@ async function chargerDetailMenu() {
         if (document.getElementById('menu-stock')) document.getElementById('menu-stock').textContent = `${menu.quantiteRestante ?? '--'} en stock`;
         if (document.getElementById('menu-prix')) document.getElementById('menu-prix').textContent = `${menu.prixParPersonne ?? '--'} € / personne`;
         if (document.getElementById('menu-min-pers')) document.getElementById('menu-min-pers').textContent = menu.nombrePersonneMinimum ?? '--';
-        if (document.getElementById('menu-regime')) document.getElementById('menu-regime').textContent = menu.regime || menu.libelleRegime || '--';
+
+        const elRegime = document.getElementById('menu-regime');
+        if (elRegime) {
+            if (menu.regimes && Array.isArray(menu.regimes) && menu.regimes.length > 0) {
+                // Extrait 'nom' ou 'libelle' de chaque régime et les joint avec une virgule s'il y en a plusieurs
+                elRegime.textContent = menu.regimes
+                    .map(r => r.nom || r.libelle)
+                    .filter(Boolean)
+                    .join(', ');
+            } else {
+                elRegime.textContent = menu.regime || '--';
+            }
+        }
 
         // 3. Traitement de l'image principale du menu
         const imgMenuElement = document.getElementById('menu-image');

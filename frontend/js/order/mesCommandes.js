@@ -20,7 +20,7 @@ async function chargerCommandesClient(container) {
     const token = (typeof getToken === 'function' ? getToken() : null) || getCookie("accesstoken");
 
     const headers = {
-        'Accept': 'application/json, application/ld+json, */*',
+        'Accept': 'application/json',
         'Content-Type': 'application/json'
     };
     if (token) {
@@ -28,19 +28,18 @@ async function chargerCommandesClient(container) {
     }
 
     try {
-        // 1. Récupération des commandes (le serveur PHP s'occupe de renvoyer UNIQUEMENT celles de l'utilisateur connecté)
+        // 1. Récupération des commandes
         const res = await fetch("http://127.0.0.1:8000/api/mes-commandes", { 
             headers,
-            cache: 'no-store' // Forcer la mise à jour pour éviter tout cache de réponse
+            cache: 'no-store'
         });
-        
+
         if (!res.ok) throw new Error("Impossible de charger les commandes.");
 
         const data = await res.json();
-        // Le PHP renvoie directement le tableau des commandes du client connecté
-        const mesCommandes = data['hydra:member'] || data.member || data || [];
+        const mesCommandes = Array.isArray(data) ? data : (data['hydra:member'] || data.member || []);
 
-        console.log(`📦 Commandes reçues pour cet utilisateur : ${mesCommandes.length}`);
+        console.log(`📦 Commandes reçues : ${mesCommandes.length}`);
 
         // 2. Rendu HTML
         container.innerHTML = "";
@@ -53,22 +52,34 @@ async function chargerCommandesClient(container) {
             return;
         }
 
-        mesCommandes.forEach(cmd => {
-            const idCommande = cmd.id || cmd['@id']?.split('/').pop() || 'N/A';
-            const numCommande = cmd.numeroCommande || idCommande;
+        mesCommandes.forEach((cmd, index) => {
+            const numCommande = cmd.numeroCommande || cmd.id || 'N/A';
+            const collapseId = `collapse-${index}-${numCommande.replace(/[^a-zA-Z0-9]/g, '')}`;
+
             const dateCmd = cmd.dateCommande ? new Date(cmd.dateCommande).toLocaleDateString('fr-FR') : 'N/A';
             const datePrest = cmd.datePrestation ? new Date(cmd.datePrestation).toLocaleDateString('fr-FR') : 'N/A';
-            const heureLiv = cmd.heureLivraison || 'Non spécifiée';
+            
+            // Format heure : retire les secondes superflues si présentes
+            let heureLiv = cmd.heureLivraison || 'Non spécifiée';
+            if (heureLiv.length === 8) {
+                heureLiv = heureLiv.slice(0, 5);
+            }
 
+            const menuTitre = cmd.menu?.titre || 'Menu personnalisé / standard';
             const prixMenu = parseFloat(cmd.prixMenu || 0);
             const prixLivraison = parseFloat(cmd.prixLivraison || 0);
             const total = prixMenu + prixLivraison;
             const nbPersonnes = cmd.nombrePersonne || 1;
             const statut = cmd.statut || 'En attente';
+            const pretMateriel = cmd.pretMateriel ? 'Oui' : 'Non';
 
+            // Gestion des couleurs du badge statut
             let badgeColor = 'bg-warning text-dark';
-            if (statut.toLowerCase().includes('valide') || statut.toLowerCase().includes('livré')) badgeColor = 'bg-success';
-            if (statut.toLowerCase().includes('annul')) badgeColor = 'bg-danger';
+            if (statut.toLowerCase().includes('valide') || statut.toLowerCase().includes('livré') || statut.toLowerCase().includes('accept')) {
+                badgeColor = 'bg-success text-white';
+            } else if (statut.toLowerCase().includes('annul') || statut.toLowerCase().includes('refus')) {
+                badgeColor = 'bg-danger text-white';
+            }
 
             const cardHTML = `
                 <div class="card mb-3 shadow-sm border-0">
@@ -78,30 +89,35 @@ async function chargerCommandesClient(container) {
                             <span class="badge ${badgeColor}">${statut}</span>
                         </div>
                         <p class="text-muted small mb-2">Passée le : ${dateCmd}</p>
+                        
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fs-5 fw-bold text-primary">Total : ${total.toFixed(2)} €</span>
-                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${idCommande}">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                                 Voir détails
                             </button>
                         </div>
 
-                        <div class="collapse mt-3" id="collapse-${idCommande}">
-                            <div class="card card-body bg-light">
+                        <div class="collapse mt-3" id="${collapseId}">
+                            <div class="card card-body bg-light border-0">
+                                <h6 class="fw-bold text-dark mb-2">
+                                    <i class="bi bi-journal-text me-1"></i> Menu : <span class="text-primary">${menuTitre}</span>
+                                </h6>
                                 <p class="mb-1"><strong>Prestation prévue le :</strong> ${datePrest} à ${heureLiv}</p>
                                 <p class="mb-1"><strong>Nombre de personnes :</strong> ${nbPersonnes}</p>
-                                <hr>
+                                <p class="mb-1"><strong>Prêt de matériel :</strong> ${pretMateriel}</p>
+                                <hr class="my-2">
                                 <div class="d-flex justify-content-between">
-                                    <span>Prix menu :</span><span>${prixMenu.toFixed(2)} €</span>
+                                    <span>Prix menu :</span><span class="fw-semibold">${prixMenu.toFixed(2)} €</span>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <span>Livraison :</span><span>${prixLivraison.toFixed(2)} €</span>
+                                    <span>Livraison :</span><span class="fw-semibold">${prixLivraison.toFixed(2)} €</span>
                                 </div>
                             </div>
                         </div>
 
                         ${statut.toLowerCase().includes("attente") ? `
                         <div class="mt-3 text-end">
-                            <button class="btn btn-sm btn-outline-danger btn-annuler" data-id="${idCommande}">
+                            <button class="btn btn-sm btn-outline-danger btn-annuler" data-num="${numCommande}">
                                 <i class="bi bi-x-circle me-1"></i> Annuler commande
                             </button>
                         </div>` : ''}
@@ -109,6 +125,42 @@ async function chargerCommandesClient(container) {
                 </div>
             `;
             container.insertAdjacentHTML("beforeend", cardHTML);
+        });
+
+        // 3. Gestionnaire pour le bouton d'annulation
+        container.querySelectorAll(".btn-annuler").forEach(btn => {
+            btn.addEventListener("click", async function() {
+                const numCmd = this.dataset.num;
+                if (!confirm(`Êtes-vous sûr de vouloir annuler la commande ${numCmd} ?`)) {
+                    return;
+                }
+
+                this.disabled = true;
+                this.textContent = "Annulation en cours...";
+
+                try {
+                    const resPatch = await fetch(`http://127.0.0.1:8000/api/mes-commandes/${numCmd}`, {
+                        method: 'PATCH',
+                        headers: headers,
+                        body: JSON.stringify({ statut: 'Annulée' })
+                    });
+
+                    if (resPatch.ok) {
+                        alert("Votre commande a été annulée avec succès.");
+                        chargerCommandesClient(container); // Recharger la liste
+                    } else {
+                        const err = await resPatch.json();
+                        alert(err.error || "Impossible d'annuler la commande.");
+                        this.disabled = false;
+                        this.textContent = "Annuler commande";
+                    }
+                } catch (e) {
+                    console.error("Erreur annulation :", e);
+                    alert("Erreur réseau lors de l'annulation.");
+                    this.disabled = false;
+                    this.textContent = "Annuler commande";
+                }
+            });
         });
 
     } catch (error) {

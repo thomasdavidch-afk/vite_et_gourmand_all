@@ -8,6 +8,7 @@ use App\Entity\Utilisateur;
 use App\Repository\CommandeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\UtilisateurRepository;
+use App\Service\StatCommandeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,7 +40,7 @@ class CommandeController extends AbstractController
     }
 
     /**
-     * GET /api/commandes
+     * GET /api/mes-commandes
      * Récupère la liste des commandes du client connecté
      */
     #[Route('', name: 'list', methods: ['GET'], format: 'json')]
@@ -50,14 +51,12 @@ class CommandeController extends AbstractController
     ): JsonResponse {
         $user = $this->getUserFromRequest($request, $utilisateurRepository);
 
-        // S'assurer strict que l'utilisateur existe
         if (!$user) {
             return new JsonResponse([
                 'error' => 'Utilisateur non authentifié'
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Récupérer UNIQUEMENT les commandes liées à cet utilisateur précis
         $commandes = $commandeRepository->findBy(
             ['utilisateur' => $user],
             ['dateCommande' => 'DESC']
@@ -95,7 +94,7 @@ class CommandeController extends AbstractController
     }
 
     /**
-     * POST /api/commandes
+     * POST /api/mes-commandes
      * Crée la commande, applique les règles tarifaires et envoie le mail de confirmation
      */
     #[Route('', name: 'create', methods: ['POST'])]
@@ -145,7 +144,7 @@ class CommandeController extends AbstractController
         $prixTotalMenu = $prixUnitaire * $nbPersonnes;
 
         if ($nbPersonnes >= ($minPersonnes + 5)) {
-            $prixTotalMenu = $prixTotalMenu * 0.90; // Application des -10%
+            $prixTotalMenu = $prixTotalMenu * 0.90;
         }
 
         // 3. Calcul des frais de livraison (RÈGLE MÉTIER : 5€ + 0.59€/km si hors Bordeaux)
@@ -202,7 +201,7 @@ class CommandeController extends AbstractController
         $em->persist($commande);
         $em->flush();
 
-        // 6. RÈGLE MÉTIER : Envoi de l'email de confirmation
+        // 6. Envoi de l'email de confirmation
         if ($emailClient) {
             $totalCommande = $prixTotalMenu + $prixLivraison;
 
@@ -235,7 +234,7 @@ class CommandeController extends AbstractController
             try {
                 $mailer->send($email);
             } catch (\Exception $e) {
-                // Log l'erreur si besoin sans bloquer le retour de la commande
+                // Ignore log
             }
         }
 
@@ -249,15 +248,16 @@ class CommandeController extends AbstractController
     }
 
     /**
-     * PATCH /api/commandes/{numeroCommande}
-     * Permet la modification / annulation d'une commande
+     * PATCH /api/mes-commandes/{numeroCommande}
+     * Permet la modification / mise à jour du statut d'une commande
      */
     #[Route('/{numeroCommande}', name: 'cancel', methods: ['PATCH'])]
     public function cancel(
         string $numeroCommande,
         Request $request,
         CommandeRepository $commandeRepository,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        StatCommandeService $statService
     ): JsonResponse {
         $commande = $commandeRepository->findOneBy(['numeroCommande' => $numeroCommande]);
 
@@ -267,8 +267,15 @@ class CommandeController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         if (isset($data['statut'])) {
-            $commande->setStatut($data['statut']);
+            $statut = trim($data['statut']);
+            $commande->setStatut($statut);
             $em->flush();
+
+            // Synchronisation NoSQL quand la commande est terminée / livrée
+            $statutsValides = ['terminee', 'terminée', 'termine', 'terminé', 'livree', 'livrée', 'accepte', 'accepté', 'acceptée'];
+            if (in_array(mb_strtolower($statut), $statutsValides)) {
+                $statService->synchroniserCommandeTerminee($commande);
+            }
         }
 
         return new JsonResponse(['message' => 'Statut mis à jour avec succès'], Response::HTTP_OK);

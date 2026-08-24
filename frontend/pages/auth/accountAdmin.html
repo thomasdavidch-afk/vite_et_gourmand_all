@@ -356,4 +356,96 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- 6. STATISTIQUES & ANALYSE DES VENTES (NoSQL) -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-dark"><i class="bi bi-graph-up-arrow me-2"></i>6. Statistiques & Chiffre d'Affaires</h3>
+    <hr>
+
+    <!-- BARRE DE FILTRES (Menu + Période) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3"><i class="bi bi-funnel me-1"></i> Filtres d'analyse</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Menu</label>
+                    <select id="stats-filter-menu" class="form-select">
+                        <option value="all">Tous les menus</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Date de début</label>
+                    <input type="date" id="stats-date-start" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Date de fin</label>
+                    <input type="date" id="stats-date-end" class="form-control">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="button" id="btn-filter-stats" class="btn btn-primary w-100">
+                        <i class="bi bi-check2"></i> Filtrer
+                    </button>
+                    <button type="button" id="btn-reset-stats" class="btn btn-outline-secondary" title="Réinitialiser">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARTES RÉSUMÉ (Commandes & CA) -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card bg-light border-0 shadow-sm text-center py-3">
+                <h6 class="text-muted text-uppercase mb-1">Nombre total de commandes</h6>
+                <h2 class="fw-bold text-primary mb-0" id="stats-total-orders">0</h2>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light border-0 shadow-sm text-center py-3">
+                <h6 class="text-muted text-uppercase mb-1">Chiffre d'affaires total généré</h6>
+                <h2 class="fw-bold text-success mb-0" id="stats-total-ca">0,00 €</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAPHIQUE COMPARATIF & TABLEAU DÉTAILLÉ -->
+    <div class="row">
+        <!-- Graphique (Chart.js) -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-bar-chart-line me-1"></i> Comparatif des commandes par menu</h5>
+                    <div style="position: relative; height: 320px; width: 100%;">
+                        <canvas id="chart-commandes-menus"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau détaillé CA par Menu -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-table me-1"></i> Détail par menu</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Menu</th>
+                                    <th class="text-center">Commandes</th>
+                                    <th class="text-end">CA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-stats-ca-body">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Chargement des statistiques...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>

@@ -134,6 +134,7 @@ Selon les ports déclarés dans `docker-compose.yml` :
 - API backend : `http://localhost:8000`
 - MySQL : `localhost:3306`
 - MongoDB : `localhost:27017`
+- PhpMyAdmin : `http://localhost:8081`
  
 Le frontend utilise le fallback Nginx vers `index.html` afin de permettre le fonctionnement du routeur JavaScript sur les routes suivantes :
  

@@ -40,9 +40,8 @@ async function initChoixCommandePage() {
     const formChoixMenu      = document.getElementById("formChoixMenu");
 
     let menusMap = {};
-    let cataloguePlats = {}; // Dictionnaire { idPlat: "Nom/Titre du Plat" }
+    let cataloguePlats = {};
 
-    // Fonction de récupération du cookie (si besoin de récupérer le token)
     function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -51,7 +50,7 @@ async function initChoixCommandePage() {
     }
 
     // ============================================================
-    // 3. CHARGEMENT PRÉALABLE DU CATALOGUE DE PLATS
+    // 3. CHARGEMENT DU CATALOGUE DE PLATS
     // ============================================================
     async function chargerCataloguePlats() {
         try {
@@ -70,7 +69,6 @@ async function initChoixCommandePage() {
                         cataloguePlats[id] = nomOuTitre || `Plat #${id}`;
                     }
                 });
-                console.log("Catalogue de plats chargé :", cataloguePlats);
             }
         } catch (e) {
             console.warn("Impossible de charger le catalogue des plats", e);
@@ -78,20 +76,17 @@ async function initChoixCommandePage() {
     }
 
     // ============================================================
-    // 4. CHARGEMENT DES MENUS DEPUIS L'API
+    // 4. CHARGEMENT DES MENUS
     // ============================================================
     try {
         await chargerCataloguePlats();
 
         const API_URL = "http://127.0.0.1:8000/api/menus"; 
-
         const res = await fetch(API_URL, {
             headers: { 'Accept': 'application/json' }
         });
 
-        if (!res.ok) {
-            throw new Error(`Erreur HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
 
         const data = await res.json();
         const listeMenus = Array.isArray(data) ? data : (data["hydra:member"] || data.menus || []);
@@ -123,7 +118,7 @@ async function initChoixCommandePage() {
     }
 
     // ============================================================
-    // 5. CHANGEMENT DE MENU (AFFICHE LE CONTENU)
+    // 5. CHANGEMENT DE MENU
     // ============================================================
     selectMenu.addEventListener("change", function() {
         const menuId = this.value;
@@ -146,24 +141,19 @@ async function initChoixCommandePage() {
 
         if (Array.isArray(listePlats) && listePlats.length > 0) {
             htmlContenu += `<h6 class="fw-bold mb-2">Composition du menu :</h6><ul class="mb-0 ps-3">`;
-
             listePlats.forEach(item => {
                 const objPlat = item.plat || item;
                 const idPlat = objPlat.platId || objPlat.id;
-
                 const titreDirect = objPlat.titre || objPlat["titre-plat"] || objPlat.titrePlat || objPlat.nom;
                 const nomFinal = titreDirect || cataloguePlats[idPlat] || `Plat #${idPlat}`;
-
                 htmlContenu += `<li>${nomFinal}</li>`;
             });
-
             htmlContenu += `</ul>`;
         } else {
             htmlContenu += `<p class="mb-0 text-muted fs-6"><em>Menu tout-compris.</em></p>`;
         }
 
         containerContenu.innerHTML = htmlContenu;
-
         calculerPrix();
     });
 
@@ -205,13 +195,12 @@ async function initChoixCommandePage() {
     nbPersonnesInput.addEventListener("input", calculerPrix);
 
     // ============================================================
-    // 7. SOUMISSION DU FORMULAIRE ET ENREGISTREMENT POST
+    // 7. SOUMISSION DU FORMULAIRE ET ENVOI AU CONTROLLER
     // ============================================================
     formChoixMenu.addEventListener("submit", async function(e) {
         e.preventDefault();
 
         const btnSubmit = formChoixMenu.querySelector('button[type="submit"]');
-
         const menuId = selectMenu.value;
         const menu = menusMap[menuId];
 
@@ -228,9 +217,9 @@ async function initChoixCommandePage() {
             return;
         }
 
-        // Sauvegarde locale dans le sessionStorage
+        // Sauvegarde locale sessionStorage
         const choixCommande = {
-            menuId: menuId,
+            menuId: parseInt(menuId, 10),
             menuNom: menu.titre || menu.nom,
             prixParPersonne: parseFloat(menu.prixParPersonne || menu.prix || 0),
             nbPersonnes: nbPersonnes,
@@ -239,62 +228,33 @@ async function initChoixCommandePage() {
             montantRemise: montantRemiseInput.value,
             prixTotal: prixTotalInput.value
         };
-
         sessionStorage.setItem("choixCommande", JSON.stringify(choixCommande));
 
-        // Formatage du prix total sous forme de nombre
-        const prixTotalNum = parseFloat(prixTotalInput.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
-
-        // Génération du numéro de commande unique
-        const numCommande = "CMD-" + Date.now().toString().slice(-8);
-
-        // Récupération de l'email et des infos utilisateur
-        let rawUser = sessionStorage.getItem("user") || localStorage.getItem("user");
-        let userObj = null;
-        try { userObj = rawUser ? JSON.parse(rawUser) : null; } catch(e){}
-
-        const userId = infoCommande.utilisateurId 
-                    || infoCommande.userId 
-                    || infoCommande.id 
-                    || (userObj ? (userObj.id || userObj.utilisateurId || userObj.userId) : null);
-
-        const userEmail = infoCommande.email || (userObj ? userObj.email : null);
-        const tokenCookie = getCookie("accesstoken");
-
         // Formatage de l'heure
-        let heureLivraisonBrute = infoCommande.heureLivraison || infoCommande.heure || "12:00";
+        let heureLivraisonBrute = (infoCommande.heureLivraison || infoCommande.heure || "12:00").trim();
         if (heureLivraisonBrute.length === 5) {
             heureLivraisonBrute += ":00";
         }
 
-        const datePrestationStr = (infoCommande.datePrestation || infoCommande.dateLivraison || new Date().toISOString().slice(0, 10));
-        const heureDateTime = `${datePrestationStr.slice(0, 10)}T${heureLivraisonBrute}`;
+        const datePrestationStr = (infoCommande.datePrestation || infoCommande.dateLivraison || new Date().toISOString().slice(0, 10)).slice(0, 10);
 
-        // Payload
+        // PAYLOAD EXACT ATTENDU PAR LE CommandeController PHP
         const payloadCommande = {
-            numeroCommande: numCommande,
-            dateCommande: new Date().toISOString().slice(0, 10),
-            datePrestation: datePrestationStr.slice(0, 10),
-            heureLivraison: heureDateTime,
-            heure: heureLivraisonBrute,
-            prixMenu: prixTotalNum,
-            nombrePersonne: nbPersonnes,
-            prixLivraison: parseFloat(infoCommande.fraisLivraison || 0),
-            statut: "En attente",
-            pretMateriel: false,
-            restitutionMateriel: false,
             menuId: parseInt(menuId, 10),
-            menu: parseInt(menuId, 10),
-            email: userEmail,
-            emailUtilisateur: userEmail,
-            accessToken: tokenCookie
+            nombrePersonne: nbPersonnes,
+            datePrestation: datePrestationStr,
+            heure: heureLivraisonBrute,
+            pretMateriel: infoCommande.pretMateriel || false,
+            // Coordonnées client pour création/maj utilisateur et frais de livraison :
+            email: infoCommande.email,
+            nomComplet: infoCommande.nomComplet || infoCommande.nom || '',
+            telephone: infoCommande.telephone || '',
+            ville: infoCommande.ville || 'Bordeaux',
+            distanceKm: parseFloat(infoCommande.distanceKm || infoCommande.distance || 0),
+            numeroRue: infoCommande.numeroRue || '',
+            nomRue: infoCommande.nomRue || infoCommande.adresse || '',
+            codePostal: infoCommande.codePostal || ''
         };
-
-        if (userId) {
-            payloadCommande.utilisateurId = parseInt(userId, 10);
-            payloadCommande.utilisateur = parseInt(userId, 10);
-            payloadCommande.user = parseInt(userId, 10);
-        }
 
         console.log("Payload envoyé à la BDD :", payloadCommande);
 
@@ -303,17 +263,18 @@ async function initChoixCommandePage() {
             btnSubmit.textContent = "Enregistrement en cours...";
         }
 
+        const tokenCookie = getCookie("accesstoken");
         const headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         };
 
         if (tokenCookie) {
-            headers["Authorization"] = `Bearer ${tokenCookie}`;
+            headers["X-AUTH-TOKEN"] = tokenCookie;
         }
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/commandes", {
+            const response = await fetch("http://127.0.0.1:8000/api/mes-commandes", {
                 method: "POST",
                 headers: headers,
                 body: JSON.stringify(payloadCommande)
@@ -321,7 +282,10 @@ async function initChoixCommandePage() {
 
             if (response.ok || response.status === 201) {
                 const resData = await response.json();
-                console.log("✅ Commande créée avec succès dans la BDD :", resData);
+                console.log("✅ Commande créée avec succès :", resData);
+
+                // On stocke le numéro de commande retourné pour l'affichage final
+                sessionStorage.setItem("dernierNumeroCommande", resData.numeroCommande);
 
                 if (window.router && typeof window.router.navigate === "function") {
                     window.router.navigate("/confirmationCommande");
@@ -331,7 +295,7 @@ async function initChoixCommandePage() {
             } else {
                 const errData = await response.json();
                 console.error("❌ Erreur serveur lors de la création :", errData);
-                alert("Erreur lors de la validation de la commande. Consultez la console.");
+                alert(errData.error || "Erreur lors de la validation de la commande.");
                 if (btnSubmit) {
                     btnSubmit.disabled = false;
                     btnSubmit.textContent = "Valider ma commande";
