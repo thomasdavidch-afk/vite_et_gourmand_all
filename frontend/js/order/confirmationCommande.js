@@ -1,161 +1,165 @@
-// Exécution
-initConfirmationPage();
+(function () {
+    const API_URL = window.API_URL;
 
-async function initConfirmationPage() {
+    // Exécution
+    initConfirmationPage();
 
-    // ============================================================
-    // 1. DÉCUPÉRATION ET VALIDATION DES DONNÉES
-    // ============================================================
-    const rawStep1 = sessionStorage.getItem("infoCommande");
-    const rawStep2 = sessionStorage.getItem("choixCommande");
+    async function initConfirmationPage() {
 
-    let infoCommande = null;
-    let choixCommande = null;
+        // ============================================================
+        // 1. DÉCUPÉRATION ET VALIDATION DES DONNÉES
+        // ============================================================
+        const rawStep1 = sessionStorage.getItem("infoCommande");
+        const rawStep2 = sessionStorage.getItem("choixCommande");
 
-    try {
-        infoCommande = rawStep1 ? JSON.parse(rawStep1) : null;
-        choixCommande = rawStep2 ? JSON.parse(rawStep2) : null;
-    } catch (e) {
-        console.error("Erreur de lecture du sessionStorage", e);
-    }
+        let infoCommande = null;
+        let choixCommande = null;
 
-    console.log("infoCommande :", infoCommande);
-    console.log("choixCommande :", choixCommande);
-
-    // Si une des étapes est manquante, redirection vers l'étape 1
-    if (!infoCommande || !choixCommande || !choixCommande.menuId) {
-        console.warn("Données de commande incomplètes.");
-        alert("Session expirée ou informations manquantes. Veuillez refaire votre choix.");
-        window.location.href = "/infoCommande";
-        return;
-    }
-
-    // ============================================================
-    // 2. RECUPÉRATION DU MENU DEPUIS L'API
-    // ============================================================
-    const menuId = choixCommande.menuId;
-    let menuDetails = null;
-
-    try {
-        // Adapté pour gérer menuId ou IRI
-        const response = await fetch(`http://127.0.0.1:8000/api/menus/${menuId}`, {
-            headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Code HTTP ${response.status}`);
+        try {
+            infoCommande = rawStep1 ? JSON.parse(rawStep1) : null;
+            choixCommande = rawStep2 ? JSON.parse(rawStep2) : null;
+        } catch (e) {
+            console.error("Erreur de lecture du sessionStorage", e);
         }
 
-        menuDetails = await response.json();
-        console.log("Menu chargé :", menuDetails);
+        console.log("infoCommande :", infoCommande);
+        console.log("choixCommande :", choixCommande);
 
-    } catch (err) {
-        console.error("Menu introuvable dans l'API :", err);
-        // Au lieu de rediriger directement, on affiche un message clair
-        alert("Impossible de charger les détails du menu sélectionné.");
-        return; 
-    }
+        // Si une des étapes est manquante, redirection vers l'étape 1
+        if (!infoCommande || !choixCommande || !choixCommande.menuId) {
+            console.warn("Données de commande incomplètes.");
+            alert("Session expirée ou informations manquantes. Veuillez refaire votre choix.");
+            window.location.href = "/infoCommande";
+            return;
+        }
 
-    // ============================================================
-    // 3. AFFICHAGE DU RÉCAPITULATIF DANS LE DOM (Si vous avez les éléments)
-    // ============================================================
-    // Exemples d'éléments s'ils existent dans votre HTML :
-    const elemClient = document.getElementById("recapClient");
-    if (elemClient) {
-        elemClient.textContent = `${infoCommande.nomComplet} (${infoCommande.email})`;
-    }
+        // ============================================================
+        // 2. RECUPÉRATION DU MENU DEPUIS L'API
+        // ============================================================
+        const menuId = choixCommande.menuId;
+        let menuDetails = null;
 
-    const elemMenu = document.getElementById("recapMenu");
-    if (elemMenu) {
-        elemMenu.textContent = `${choixCommande.menuNom} x ${choixCommande.nbPersonnes} personnes`;
-    }
+        try {
+            // Adapté pour gérer menuId ou IRI
+            const response = await fetch(`${API_URL}/menus/${menuId}`, {
+                headers: { 'Accept': 'application/json' }
+            });
 
-    const elemPrix = document.getElementById("recapPrixTotal");
-    if (elemPrix) {
-        elemPrix.textContent = choixCommande.prixTotal;
-    }
+            if (!response.ok) {
+                throw new Error(`Code HTTP ${response.status}`);
+            }
 
-    // ============================================================
-    // 4. SOUMISSION & ENREGISTREMENT EN BASE DE DONNÉES (POST API)
-    // ============================================================
-    const btnValider = document.getElementById("btnValiderCommande");
+            menuDetails = await response.json();
+            console.log("Menu chargé :", menuDetails);
 
-    if (btnValider) {
-        btnValider.addEventListener("click", async function(e) {
-            e.preventDefault();
+        } catch (err) {
+            console.error("Menu introuvable dans l'API :", err);
+            // Au lieu de rediriger directement, on affiche un message clair
+            alert("Impossible de charger les détails du menu sélectionné.");
+            return; 
+        }
 
-            btnValider.disabled = true;
-            btnValider.textContent = "Validation en cours...";
+        // ============================================================
+        // 3. AFFICHAGE DU RÉCAPITULATIF DANS LE DOM (Si vous avez les éléments)
+        // ============================================================
+        // Exemples d'éléments s'ils existent dans votre HTML :
+        const elemClient = document.getElementById("recapClient");
+        if (elemClient) {
+            elemClient.textContent = `${infoCommande.nomComplet} (${infoCommande.email})`;
+        }
 
-            // Nettoyage et conversion des formats pour la BDD
-            const prixMenuFloat = parseFloat(
-                choixCommande.prixTotal ? choixCommande.prixTotal.replace('€', '').trim() : 0
-            );
+        const elemMenu = document.getElementById("recapMenu");
+        if (elemMenu) {
+            elemMenu.textContent = `${choixCommande.menuNom} x ${choixCommande.nbPersonnes} personnes`;
+        }
 
-            // Génération d'un numéro de commande unique (ex: CMD-20260818-XXXX)
-            const numCommande = "CMD-" + Date.now().toString().slice(-8);
+        const elemPrix = document.getElementById("recapPrixTotal");
+        if (elemPrix) {
+            elemPrix.textContent = choixCommande.prixTotal;
+        }
 
-            // Construction du JSON à envoyer correspondant à la structure de la table BDD :
-            // (numero_commande, date_commande, date_prestation, heure_livraison, prix_menu, 
-            //  nombre_personne, prix_livraison, statut, pret_materiel, restitution_materiel, menu_id, utilisateur_id)
-            const payloadCommande = {
-                numeroCommande: numCommande,
-                dateCommande: new Date().toISOString(),
-                datePrestation: infoCommande.datePrestation || infoCommande.dateEvent || new Date().toISOString(),
-                heureLivraison: infoCommande.heureLivraison || "12:00",
-                prixMenu: prixMenuFloat,
-                nombrePersonne: parseInt(choixCommande.nbPersonnes),
-                prixLivraison: parseFloat(infoCommande.fraisLivraison || 0),
-                statut: "EN_ATTENTE", // ou "VALIDE"
-                pretMateriel: false,
-                restitutionMateriel: false,
+        // ============================================================
+        // 4. SOUMISSION & ENREGISTREMENT EN BASE DE DONNÉES (POST API)
+        // ============================================================
+        const btnValider = document.getElementById("btnValiderCommande");
 
-                // Si vous utilisez API Platform, les relations se passent sous forme d'IRI "/api/..." :
-                menu: `/api/menus/${menuId}`,
-                // Si l'utilisateur est connecté, passer son IRI, sinon null
-                utilisateur: infoCommande.utilisateurId ? `/api/utilisateurs/${infoCommande.utilisateurId}` : null
-            };
+        if (btnValider) {
+            btnValider.addEventListener("click", async function(e) {
+                e.preventDefault();
 
-            try {
-                const postRes = await fetch("http://127.0.0.1:8000/api/commandes", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    },
-                    body: JSON.stringify(payloadCommande)
-                });
+                btnValider.disabled = true;
+                btnValider.textContent = "Validation en cours...";
 
-                if (postRes.ok || postRes.status === 201) {
-                    const commandeCreee = await postRes.json();
-                    console.log("Commande créée avec succès !", commandeCreee);
+                // Nettoyage et conversion des formats pour la BDD
+                const prixMenuFloat = parseFloat(
+                    choixCommande.prixTotal ? choixCommande.prixTotal.replace('€', '').trim() : 0
+                );
 
-                    // Vider la session
-                    sessionStorage.removeItem("infoCommande");
-                    sessionStorage.removeItem("choixCommande");
+                // Génération d'un numéro de commande unique (ex: CMD-20260818-XXXX)
+                const numCommande = "CMD-" + Date.now().toString().slice(-8);
 
-                    alert("Votre commande a été enregistrée avec succès !");
+                // Construction du JSON à envoyer correspondant à la structure de la table BDD :
+                // (numero_commande, date_commande, date_prestation, heure_livraison, prix_menu, 
+                //  nombre_personne, prix_livraison, statut, pret_materiel, restitution_materiel, menu_id, utilisateur_id)
+                const payloadCommande = {
+                    numeroCommande: numCommande,
+                    dateCommande: new Date().toISOString(),
+                    datePrestation: infoCommande.datePrestation || infoCommande.dateEvent || new Date().toISOString(),
+                    heureLivraison: infoCommande.heureLivraison || "12:00",
+                    prixMenu: prixMenuFloat,
+                    nombrePersonne: parseInt(choixCommande.nbPersonnes),
+                    prixLivraison: parseFloat(infoCommande.fraisLivraison || 0),
+                    statut: "EN_ATTENTE", // ou "VALIDE"
+                    pretMateriel: false,
+                    restitutionMateriel: false,
 
-                    // Redirection finale
-                    if (window.router && typeof window.router.navigate === "function") {
-                        window.router.navigate("/succesCommande");
+                    // Si vous utilisez API Platform, les relations se passent sous forme d'IRI "/api/..." :
+                    menu: `/api/menus/${menuId}`,
+                    // Si l'utilisateur est connecté, passer son IRI, sinon null
+                    utilisateur: infoCommande.utilisateurId ? `/api/utilisateurs/${infoCommande.utilisateurId}` : null
+                };
+
+                try {
+                    const postRes = await fetch(`${API_URL}/commandes`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify(payloadCommande)
+                    });
+
+                    if (postRes.ok || postRes.status === 201) {
+                        const commandeCreee = await postRes.json();
+                        console.log("Commande créée avec succès !", commandeCreee);
+
+                        // Vider la session
+                        sessionStorage.removeItem("infoCommande");
+                        sessionStorage.removeItem("choixCommande");
+
+                        alert("Votre commande a été enregistrée avec succès !");
+
+                        // Redirection finale
+                        if (window.router && typeof window.router.navigate === "function") {
+                            window.router.navigate("/succesCommande");
+                        } else {
+                            window.location.href = "/succesCommande";
+                        }
                     } else {
-                        window.location.href = "/succesCommande";
+                        const errData = await postRes.json();
+                        console.error("Erreur serveur lors de la création de la commande :", errData);
+                        alert("Erreur lors de la validation de la commande. Veuillez réessayer.");
+                        btnValider.disabled = false;
+                        btnValider.textContent = "Valider ma commande";
                     }
-                } else {
-                    const errData = await postRes.json();
-                    console.error("Erreur serveur lors de la création de la commande :", errData);
-                    alert("Erreur lors de la validation de la commande. Veuillez réessayer.");
+
+                } catch (err) {
+                    console.error("Erreur réseau :", err);
+                    alert("Erreur de connexion au serveur.");
                     btnValider.disabled = false;
                     btnValider.textContent = "Valider ma commande";
                 }
-
-            } catch (err) {
-                console.error("Erreur réseau :", err);
-                alert("Erreur de connexion au serveur.");
-                btnValider.disabled = false;
-                btnValider.textContent = "Valider ma commande";
-            }
-        });
+            });
+        }
     }
-}
+})();

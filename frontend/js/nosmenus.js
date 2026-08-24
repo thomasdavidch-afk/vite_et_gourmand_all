@@ -1,6 +1,10 @@
 (function () {
-    // ⚙️ Configuration Backend
-    const API_BASE_URL = "http://127.0.0.1:8000"; // Modifiez le port (ex: 8000, 8080) si votre serveur Symfony est sur un autre port
+    const API_URL = window.API_URL;
+
+    // URL de base déduite pour les images statiques
+    const BASE_URL = (typeof API_BASE_URL !== 'undefined') 
+        ? API_BASE_URL 
+        : (typeof API_URL !== 'undefined' ? API_URL.replace(/\/api\/?$/, '') : 'http://127.0.0.1:8000');
 
     const themeRadios  = document.querySelectorAll("input[name='theme']");
     const budgetRange  = document.getElementById("budgetRange");
@@ -38,7 +42,7 @@
         listeMenus.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"></div><p class="mt-2 text-muted">Chargement des menus...</p></div>';
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/menus`, {
+            const response = await fetch(`${API_URL}/menus`, {
                 method: 'GET',
                 headers: { 
                     'Accept': 'application/json',
@@ -56,7 +60,8 @@
                 throw new Error("L'API a renvoyé du HTML au lieu de JSON. Vérifiez l'URL de votre route Symfony.");
             }
 
-            allMenusData = await response.json();
+            const data = await response.json();
+            allMenusData = Array.isArray(data) ? data : (data['hydra:member'] || data.member || []);
             console.log("📥 Menus reçus de la BDD :", allMenusData);
 
             filtrerEtAfficher();
@@ -123,7 +128,7 @@
     }
 
     function creerCardHTML(menu) {
-        const id = menu.menuId;
+        const id = menu.menuId || menu.id;
         const titre = menu.titre || "Menu Sans Nom";
         const prix = menu.prixParPersonne || 0;
         const minPeople = menu.nombrePersonneMinimum || 1;
@@ -137,14 +142,17 @@
         let image = "../ressources/grandrepas2.jpg";
         if (menu.images && menu.images.length > 0 && menu.images[0].path) {
             const imagePath = menu.images[0].path;
-            image = imagePath.startsWith('http') ? imagePath : `${API_BASE_URL}/${imagePath.replace(/^\//, '')}`;
+            image = imagePath.startsWith('http') ? imagePath : `${BASE_URL}/${imagePath.replace(/^\//, '')}`;
+        } else if (menu.photo || menu.image) {
+            const imagePath = menu.photo || menu.image;
+            image = imagePath.startsWith('http') || imagePath.startsWith('data:') ? imagePath : `${BASE_URL}/${imagePath.replace(/^\//, '')}`;
         }
 
         return `
             <div class="card mb-4 border-0 shadow-sm">
                 <div class="row g-0 align-items-center">
                     <div class="col-md-4">
-                        <img src="${image}" class="img-fluid rounded-start w-100" style="object-fit: cover; height: 180px;" alt="${titre}">
+                        <img src="${image}" class="img-fluid rounded-start w-100" style="object-fit: cover; height: 180px;" alt="${titre}" onerror="this.onerror=null; this.src='../ressources/grandrepas2.jpg';">
                     </div>
                     <div class="col-md-8">
                         <div class="card-body">

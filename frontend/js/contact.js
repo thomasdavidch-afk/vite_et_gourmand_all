@@ -1,4 +1,6 @@
 (function () {
+    const API_URL = window.API_URL;
+
     // --- SÉLECTION DES ÉLÉMENTS (alignés sur vos attributs HTML) ---
     const form        = document.querySelector("form");
     const emailInput  = document.querySelector("input[name='email']");
@@ -90,7 +92,7 @@
         bouton.textContent = "Envoi en cours...";
 
         try {
-            const response = await fetch("http://localhost:8000/api/contact", {
+            const response = await fetch(`${API_URL}/contact`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
