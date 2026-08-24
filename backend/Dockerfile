@@ -33,13 +33,15 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV APP_ENV=prod
 ENV APP_DEBUG=0
 
-# Installer les dépendances Symfony de production
+# Installer les dépendances Symfony
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Installer les assets statiques (Swagger UI, etc.)
-RUN php bin/console assets:install public --no-interaction
+# 1. Compiler les assets AssetMapper pour la production (Génère swagger-ui-*.css/js)
+# 2. Installer les assets des bundles classiques
+RUN php bin/console asset-map:compile --no-interaction || true \
+    && php bin/console assets:install public --copy --no-interaction || true
 
-# Création et permissions pour le cache, logs et assets
+# Création et permissions pour le cache, logs et public
 RUN mkdir -p /var/www/backend/var \
     && chown -R www-data:www-data /var/www/backend/var \
     && chown -R www-data:www-data /var/www/backend/public
