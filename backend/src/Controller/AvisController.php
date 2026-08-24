@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use App\Entity\Avis;
 use App\Repository\AvisRepository;
-use App\Repository\UtilisateurRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,20 +39,37 @@ class AvisController extends AbstractController
     )]
     public function index(Request $request, AvisRepository $avisRepository): JsonResponse
     {
-        $valideFilter = $request->query->get('valide');
+        try {
+            $valideFilter = $request->query->get('valide');
 
-        if ($valideFilter !== null) {
-            $isValide = filter_var($valideFilter, FILTER_VALIDATE_BOOLEAN);
-            $avisList = $avisRepository->findBy(['valide' => $isValide]);
-        } else {
-            $avisList = $avisRepository->findAll();
+            if ($valideFilter !== null) {
+                $isValide = filter_var($valideFilter, FILTER_VALIDATE_BOOLEAN);
+                // Tentative de recherche par le champ 'valide'
+                try {
+                    $avisList = $avisRepository->findBy(['valide' => $isValide]);
+                } catch (\Throwable $e) {
+                    // Si le champ s'appelle 'statut' ou autre dans l'entité
+                    $avisList = $avisRepository->findAll();
+                    $avisList = array_filter($avisList, function (Avis $a) use ($isValide) {
+                        return $this->extractValideState($a) === $isValide;
+                    });
+                }
+            } else {
+                $avisList = $avisRepository->findAll();
+            }
+
+            $data = [];
+            foreach ($avisList as $avis) {
+                $data[] = $this->serializeAvis($avis);
+            }
+
+            return new JsonResponse($data, Response::HTTP_OK);
+        } catch (\Throwable $e) {
+            return new JsonResponse([
+                'error' => 'Erreur lors de la récupération des avis',
+                'details' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $data = array_map(function (Avis $avis) {
-            return $this->serializeAvis($avis);
-        }, $avisList);
-
-        return new JsonResponse($data, Response::HTTP_OK);
     }
 
     /**
@@ -119,7 +135,7 @@ class AvisController extends AbstractController
         }
 
         $avis = new Avis();
-        
+
         if (method_exists($avis, 'setNote')) {
             $avis->setNote($note);
         }
@@ -127,13 +143,17 @@ class AvisController extends AbstractController
             $avis->setCommentaire($data['commentaire']);
         }
         if (method_exists($avis, 'setValide')) {
-            $avis->setValide(false); // Par défaut en attente de modération
+            $avis->setValide(false);
+        } elseif (method_exists($avis, 'setStatut')) {
+            $avis->setStatut('EN_ATTENTE');
         }
         if (method_exists($avis, 'setDateCreation')) {
             $avis->setDateCreation(new \DateTime());
+        } elseif (method_exists($avis, 'setDateAvis')) {
+            $avis->setDateAvis(new \DateTime());
         }
 
-        // Association avec l'utilisateur connecté
+        // Association utilisateur
         $user = $this->getUser();
         if ($user && method_exists($avis, 'setUtilisateur')) {
             $avis->setUtilisateur($user);
@@ -187,68 +207,19 @@ class AvisController extends AbstractController
             return new JsonResponse(['error' => 'Le champ valide est obligatoire.'], Response::HTTP_BAD_REQUEST);
         }
 
+        $valide = (bool) $data['valide'];
+
         if (method_exists($avis, 'setValide')) {
-            $avis->setValide((bool) $data['valide']);
+            $avis->setValide($valide);
+        }
+        if (method_exists($avis, 'setStatut')) {
+            $avis->setStatut($valide ? 'VALIDE' : 'REFUSE');
         }
 
         $em->flush();
 
         return new JsonResponse([
             'message' => 'Le statut de l\'avis a été mis à jour avec succès.',
-            'avis'    => $this->serializeAvis($avis)
-        ], Response::HTTP_OK);
-    }
-
-    /**
-     * Modifier un avis (Employé / Admin)
-     */
-    #[Route('/{id}', name: 'avis_update', methods: ['PUT', 'PATCH'])]
-    #[IsGranted('ROLE_EMPLOYE', message: 'Accès refusé. Seul un employé ou un administrateur peut modifier un avis.')]
-    #[OA\Put(
-        path: '/api/avis/{id}',
-        summary: 'Modifier un avis (Employé / Admin)',
-        parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
-        ],
-        requestBody: new OA\RequestBody(
-            content: new OA\JsonContent(
-                properties: [
-                    new OA\Property(property: 'note', type: 'integer', example: 4),
-                    new OA\Property(property: 'commentaire', type: 'string', example: 'Commentaire corrigé.'),
-                    new OA\Property(property: 'valide', type: 'boolean', example: true)
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: 'Avis mis à jour avec succès'),
-            new OA\Response(response: 404, description: 'Avis non trouvé'),
-            new OA\Response(response: 403, description: 'Accès refusé')
-        ]
-    )]
-    public function update(int $id, Request $request, AvisRepository $avisRepository, EntityManagerInterface $em): JsonResponse
-    {
-        $avis = $avisRepository->find($id);
-
-        if (!$avis) {
-            return new JsonResponse(['error' => 'Avis non trouvé.'], Response::HTTP_NOT_FOUND);
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (isset($data['note']) && method_exists($avis, 'setNote')) {
-            $avis->setNote((int) $data['note']);
-        }
-        if (isset($data['commentaire']) && method_exists($avis, 'setCommentaire')) {
-            $avis->setCommentaire($data['commentaire']);
-        }
-        if (isset($data['valide']) && method_exists($avis, 'setValide')) {
-            $avis->setValide((bool) $data['valide']);
-        }
-
-        $em->flush();
-
-        return new JsonResponse([
-            'message' => 'Avis mis à jour avec succès.',
             'avis'    => $this->serializeAvis($avis)
         ], Response::HTTP_OK);
     }
@@ -285,26 +256,61 @@ class AvisController extends AbstractController
     }
 
     /**
-     * Sérialisation de l'objet Avis en tableau JSON
+     * Détermine l'état booléen de validation
+     */
+    private function extractValideState(Avis $avis): bool
+    {
+        if (method_exists($avis, 'isValide')) {
+            return (bool) $avis->isValide();
+        }
+        if (method_exists($avis, 'getValide')) {
+            return (bool) $avis->getValide();
+        }
+        if (method_exists($avis, 'getStatut')) {
+            return strtoupper((string) $avis->getStatut()) === 'VALIDE';
+        }
+        return false;
+    }
+
+    /**
+     * Sérialisation de l'objet Avis en tableau JSON sans risque de Fatal Error
      */
     private function serializeAvis(Avis $avis): array
     {
         $userData = null;
         if (method_exists($avis, 'getUtilisateur') && $avis->getUtilisateur()) {
             $user = $avis->getUtilisateur();
+            $userId = method_exists($user, 'getUtilisateurId') ? $user->getUtilisateurId() : (method_exists($user, 'getId') ? $user->getId() : null);
+            $nom = method_exists($user, 'getNom') ? $user->getNom() : '';
+            $prenom = method_exists($user, 'getPrenom') ? $user->getPrenom() : '';
+            $email = method_exists($user, 'getEmail') ? $user->getEmail() : '';
+
             $userData = [
-                'utilisateurId' => method_exists($user, 'getUtilisateurId') ? $user->getUtilisateurId() : $user->getId(),
-                'nom'           => method_exists($user, 'getNom') ? $user->getNom() : null,
-                'prenom'        => method_exists($user, 'getPrenom') ? $user->getPrenom() : null,
+                'utilisateurId' => $userId,
+                'nom'           => $nom,
+                'prenom'        => $prenom,
+                'email'         => $email
             ];
         }
 
+        $avisId = method_exists($avis, 'getAvisId') ? $avis->getAvisId() : (method_exists($avis, 'getId') ? $avis->getId() : null);
+        $note = method_exists($avis, 'getNote') ? $avis->getNote() : null;
+        $commentaire = method_exists($avis, 'getCommentaire') ? $avis->getCommentaire() : null;
+        
+        $dateCreation = null;
+        if (method_exists($avis, 'getDateCreation') && $avis->getDateCreation() instanceof \DateTimeInterface) {
+            $dateCreation = $avis->getDateCreation()->format('Y-m-d H:i:s');
+        } elseif (method_exists($avis, 'getDateAvis') && $avis->getDateAvis() instanceof \DateTimeInterface) {
+            $dateCreation = $avis->getDateAvis()->format('Y-m-d H:i:s');
+        }
+
         return [
-            'avisId'       => method_exists($avis, 'getAvisId') ? $avis->getAvisId() : $avis->getId(),
-            'note'         => method_exists($avis, 'getNote') ? $avis->getNote() : null,
-            'commentaire'  => method_exists($avis, 'getCommentaire') ? $avis->getCommentaire() : null,
-            'valide'       => method_exists($avis, 'isValide') ? $avis->isValide() : (method_exists($avis, 'getValide') ? $avis->getValide() : false),
-            'dateCreation' => method_exists($avis, 'getDateCreation') && $avis->getDateCreation() ? $avis->getDateCreation()->format('Y-m-d H:i:s') : null,
+            'avisId'       => $avisId,
+            'id'           => $avisId,
+            'note'         => $note,
+            'commentaire'  => $commentaire,
+            'valide'       => $this->extractValideState($avis),
+            'dateCreation' => $dateCreation,
             'utilisateur'  => $userData,
         ];
     }

@@ -6,6 +6,7 @@ use App\Entity\Commande;
 use App\Repository\CommandeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,17 +16,18 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/admin/commandes')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted(new Expression('is_granted("ROLE_ADMIN") or is_granted("ROLE_EMPLOYE")'))]
 class CommandeAdminController extends AbstractController
 {
-    // Statuts valides selon les exigences du projet
+    // Statuts valides autorisés
     public const STATUTS_VALIDES = [
         'accepté',
         'en préparation',
         'en cours de livraison',
         'livré',
         'en attente du retour de matériel',
-        'terminée'
+        'terminée',
+        'annulée'
     ];
 
     /**
@@ -68,7 +70,7 @@ class CommandeAdminController extends AbstractController
     }
 
     /**
-     * Mise à jour du statut d'une commande (et gestion automatique du retour matériel)
+     * Mise à jour du statut d'une commande
      */
     #[Route('/{numeroCommande}/statut', name: 'admin_commandes_update_statut', methods: ['PATCH', 'PUT', 'POST'])]
     public function updateStatut(
