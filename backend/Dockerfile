@@ -24,16 +24,20 @@ WORKDIR /var/www/backend
 # Copier les fichiers du projet
 COPY . .
 
-# Copier votre configuration Nginx existante
+# Copier la configuration Nginx
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Installer les dépendances Symfony
+# Variables d'environnement pour le build de production
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV APP_ENV=prod
+ENV APP_DEBUG=0
+
+# Installer les dépendances Symfony de production
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Permissions pour le cache et les logs
-RUN chown -R www-data:www-data /var/www/backend/var
+# Création et permissions pour le cache et les logs
+RUN mkdir -p /var/www/backend/var && chown -R www-data:www-data /var/www/backend/var
 
 EXPOSE 80
 
