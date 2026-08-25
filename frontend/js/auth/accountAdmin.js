@@ -201,7 +201,7 @@
                 html += `
                     <tr>
                         <td>
-                            <img src="${photoUrl}" alt="${plat.titrePlat || plat.nom || ''}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.src='${defaultImageSvg}'">
+                            <img src="${photoUrl}" alt="${plat.titrePlat || plat.nom || ''}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;" onerror="this.onerror=null; this.src='/ressources/logo%20V&G.png';">
                         </td>
                         <td class="fw-bold">${plat.titrePlat || plat.nom || ''}</td>
                         <td><span class="badge bg-secondary">${typeLabel}</span></td>
