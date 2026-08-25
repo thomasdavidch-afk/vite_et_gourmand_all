@@ -10,6 +10,9 @@ class StatCommande
     #[ODM\Id]
     private ?string $id = null;
 
+    #[ODM\Field(type: 'string')]
+    private ?string $commandeId = null;
+
     #[ODM\Field(type: 'int')]
     private ?int $idMenu = null;
 
@@ -22,12 +25,20 @@ class StatCommande
     #[ODM\Field(type: 'string')]
     private ?string $dateCommande = null;
 
-    #[ODM\Field(type: 'string')]
-    private ?string $commandeId = null;
-
     public function getId(): ?string
     {
         return $this->id;
+    }
+
+    public function getCommandeId(): ?string
+    {
+        return $this->commandeId;
+    }
+
+    public function setCommandeId(?string $commandeId): self
+    {
+        $this->commandeId = $commandeId;
+        return $this;
     }
 
     public function getIdMenu(): ?int
@@ -35,7 +46,7 @@ class StatCommande
         return $this->idMenu;
     }
 
-    public function setIdMenu(int $idMenu): self
+    public function setIdMenu(?int $idMenu): self
     {
         $this->idMenu = $idMenu;
         return $this;
@@ -46,7 +57,7 @@ class StatCommande
         return $this->menuTitre;
     }
 
-    public function setMenuTitre(string $menuTitre): self
+    public function setMenuTitre(?string $menuTitre): self
     {
         $this->menuTitre = $menuTitre;
         return $this;
@@ -57,7 +68,7 @@ class StatCommande
         return $this->montantTotal;
     }
 
-    public function setMontantTotal(float $montantTotal): self
+    public function setMontantTotal(?float $montantTotal): self
     {
         $this->montantTotal = $montantTotal;
         return $this;
@@ -68,19 +79,9 @@ class StatCommande
         return $this->dateCommande;
     }
 
-    public function setDateCommande(string $dateCommande): self
+    public function setDateCommande(?string $dateCommande): self
     {
         $this->dateCommande = $dateCommande;
-        return $this;
-    }
-    public function getCommandeId(): ?string
-    {
-        return $this->commandeId;
-    }
-
-    public function setCommandeId(string $commandeId): self
-    {
-        $this->commandeId = $commandeId;
         return $this;
     }
 }

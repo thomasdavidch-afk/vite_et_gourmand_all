@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Document\StatCommande;
+use App\Repository\CommandeRepository;
+use App\Service\StatCommandeService;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +36,7 @@ class AdminStatsController extends AbstractController
         $data = array_map(function (StatCommande $stat) {
             return [
                 'id'           => $stat->getId(),
+                'commandeId'   => $stat->getCommandeId(),
                 'idMenu'       => $stat->getIdMenu(),
                 'menuTitre'    => $stat->getMenuTitre(),
                 'montantTotal' => $stat->getMontantTotal(),
@@ -42,5 +45,30 @@ class AdminStatsController extends AbstractController
         }, $stats);
 
         return new JsonResponse($data, Response::HTTP_OK);
+    }
+
+    /**
+     * Route de synchronisation MySQL -> MongoDB
+     */
+    #[Route('/sync', name: 'admin_stats_sync', methods: ['GET', 'POST'])]
+    #[OA\Get(
+        summary: 'Synchroniser toutes les commandes MySQL vers MongoDB',
+        responses: [
+            new OA\Response(response: 200, description: 'Synchronisation terminée')
+        ]
+    )]
+    public function syncAll(CommandeRepository $commandeRepository, StatCommandeService $statService): JsonResponse
+    {
+        $commandes = $commandeRepository->findAll();
+        $count = 0;
+
+        foreach ($commandes as $commande) {
+            $statService->synchroniserCommandeTerminee($commande);
+            $count++;
+        }
+
+        return new JsonResponse([
+            'message' => sprintf('%d commande(s) traitée(s) vers MongoDB avec succès.', $count)
+        ], Response::HTTP_OK);
     }
 }
