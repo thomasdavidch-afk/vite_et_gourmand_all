@@ -18,6 +18,7 @@ class AdminStatsController extends AbstractController
     /**
      * Récupérer toutes les statistiques de commandes (NoSQL)
      */
+    #[Route('', name: 'admin_stats_root', methods: ['GET'])]
     #[Route('/orders', name: 'admin_stats_orders', methods: ['GET'])]
     #[IsGranted('ROLE_ADMIN')]
     #[OA\Get(
