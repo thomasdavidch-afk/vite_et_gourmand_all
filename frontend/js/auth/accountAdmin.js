@@ -12,6 +12,27 @@
 
         // Image SVG par défaut en local
         const defaultImageSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='50' height='50' fill='%23ccc' class='bi bi-image' viewBox='0 0 16 16'><path d='M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z'/><path d='M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z'/></svg>";
+        
+        // Fonction pour résoudre les URLs d'images (Gère les fichiers locaux /ressources et distants)
+        function resolveImageUrl(photoPath) {
+            if (!photoPath || photoPath.includes('via.placeholder.com')) {
+                return defaultImageSvg;
+            }
+
+            // 1. Si c'est déjà une URL HTTP(S) ou des données SVG/Base64
+            if (photoPath.startsWith('http://') || photoPath.startsWith('https://') || photoPath.startsWith('data:')) {
+                return photoPath;
+            }
+
+            // 2. Extraire uniquement le nom du fichier (au cas où la BDD contient "/uploads/entrecote.jpg" ou "/images/entrecote.jpg")
+            let nomFichier = photoPath.split('/').pop().split('\\').pop();
+
+            // 3. Encoder les caractères spéciaux et espaces (ex: "chef cuisinier.jpg" -> "chef%20cuisinier.jpg")
+            nomFichier = encodeURIComponent(decodeURIComponent(nomFichier));
+
+            // 4. Pointer vers /ressources/<nom_fichier>
+            return `/ressources/${nomFichier}`;
+        }
 
         // Statuts valides autorisés pour la mise à jour des commandes
         const statutsCommandes = [
@@ -169,9 +190,10 @@
             let html = '';
             tousLesPlats.forEach(plat => {
                 const id = plat.platId || plat.id;
+                
                 let photoUrl = defaultImageSvg;
                 if (plat.photo && !plat.photo.includes('via.placeholder.com')) {
-                    photoUrl = plat.photo.startsWith('http') ? plat.photo : `http://127.0.0.1:8000${plat.photo}`;
+                    photoUrl = resolveImageUrl(plat.photo);
                 }
 
                 const typeLabel = plat.type ? plat.type.toUpperCase() : 'N/C';
@@ -409,7 +431,7 @@
 
                 if (imgPreview) {
                     if (menu.photo) {
-                        imgPreview.src = menu.photo.startsWith('http') ? menu.photo : `http://127.0.0.1:8000${menu.photo}`;
+                        imgPreview.src = resolveImageUrl(menu.photo);
                         imgPreview.classList.remove('d-none');
                     } else {
                         imgPreview.classList.add('d-none');
