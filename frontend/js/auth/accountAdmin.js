@@ -915,5 +915,81 @@
                 cb.checked = values.includes(parseInt(cb.value));
             });
         }
+
+        // ==========================================
+        // GESTION DU CHANGEMENT DE MOT DE PASSE ADMIN
+        // ==========================================
+        const formPassword = document.getElementById("form-edit-password");
+        const passwordInput = document.getElementById("PasswordInput");
+        const validatePasswordInput = document.getElementById("ValidatePasswordInput");
+
+        if (formPassword) {
+            formPassword.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                // Réinitialiser les erreurs visuelles
+                if (passwordInput) passwordInput.classList.remove("is-invalid");
+                if (validatePasswordInput) validatePasswordInput.classList.remove("is-invalid");
+
+                const password = passwordInput ? passwordInput.value.trim() : "";
+                const validatePassword = validatePasswordInput ? validatePasswordInput.value.trim() : "";
+
+                // Validations
+                if (!password || !validatePassword) {
+                    alert("Veuillez remplir les deux champs de mot de passe.");
+                    if (!password && passwordInput) passwordInput.classList.add("is-invalid");
+                    if (!validatePassword && validatePasswordInput) validatePasswordInput.classList.add("is-invalid");
+                    return;
+                }
+
+                if (password !== validatePassword) {
+                    alert("❌ Les mots de passe ne correspondent pas.");
+                    if (passwordInput) passwordInput.classList.add("is-invalid");
+                    if (validatePasswordInput) validatePasswordInput.classList.add("is-invalid");
+                    return;
+                }
+
+                // Récupération du token
+                const token = typeof getToken === "function" ? getToken() : (
+                    localStorage.getItem("accesstoken") || 
+                    localStorage.getItem("token") || 
+                    localStorage.getItem("api_token")
+                );
+
+                if (!token) {
+                    alert("❌ Vous devez être connecté pour modifier votre mot de passe.");
+                    window.location.replace("/signin");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/account/edit`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-AUTH-TOKEN": token
+                        },
+                        body: JSON.stringify({
+                            password: password
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert("✅ " + (data.message || "Mot de passe administrateur mis à jour avec succès !"));
+                        formPassword.reset();
+                    } else {
+                        if (passwordInput) passwordInput.classList.add("is-invalid");
+                        if (validatePasswordInput) validatePasswordInput.classList.add("is-invalid");
+                        alert("❌ " + (data.error || data.message || "Erreur lors du changement de mot de passe."));
+                    }
+                } catch (error) {
+                    console.error("🔴 Erreur réseau :", error);
+                    alert("Erreur de connexion au serveur.");
+                }
+            });
+        }
+        
     }
 })();

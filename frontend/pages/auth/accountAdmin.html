@@ -410,7 +410,7 @@
     </div>
 
     <!-- GRAPHIQUE COMPARATIF & TABLEAU DÉTAILLÉ -->
-    <div class="row">
+    <div class="row mb-5">
         <!-- Graphique (Chart.js) -->
         <div class="col-lg-7 mb-4">
             <div class="card shadow-sm h-100">
@@ -448,4 +448,32 @@
             </div>
         </div>
     </div>
+
+    <!-- ========================================== -->
+    <!-- 7. SÉCURITÉ & MOT DE PASSE ADMINISTRATEUR  -->
+    <!-- ========================================== -->
+    <h3 class="mt-5 mb-3 text-danger"><i class="bi bi-shield-lock me-2"></i>7. Sécurité du compte Administrateur</h3>
+    <hr>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title fw-bold mb-3">Modifier mon mot de passe</h5>
+            <form id="form-edit-password" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" for="PasswordInput">Nouveau mot de passe *</label>
+                    <input type="password" class="form-control" id="PasswordInput" placeholder="••••••••" required minlength="8">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" for="ValidatePasswordInput">Confirmer le nouveau mot de passe *</label>
+                    <input type="password" class="form-control" id="ValidatePasswordInput" placeholder="••••••••" required minlength="8">
+                </div>
+                <div class="col-12 text-end mt-3">
+                    <button type="submit" id="btnSignin" class="btn btn-danger px-4">
+                        <i class="bi bi-key me-1"></i> Mettre à jour mon mot de passe
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </section>
